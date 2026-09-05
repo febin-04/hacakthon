@@ -98,10 +98,12 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
       }
     }
 
-    let isManipulated = analysis.hasAiSoftwareTag;
-    let syntheticProbability = 0.15; // default low synthetic probability for real media
+    let isManipulated = false;
+    let syntheticProbability = 0.15;
+    let hasValidScore = false;
 
     if (typeof score === 'number') {
+      hasValidScore = true;
       const normScore = score <= 1.0 ? score : score / 100;
       
       const isExplicitlyFake = (
@@ -127,7 +129,6 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
         syntheticProbability = Math.max(0.02, Math.min(0.30, 1 - normScore));
         isManipulated = false;
       } else {
-        // Standard API output where normScore represents AUTHENTICITY probability (0.0 to 1.0)
         if (normScore >= 0.50) {
           syntheticProbability = Math.max(0.02, Math.min(0.40, 1 - normScore));
           isManipulated = false;
@@ -136,6 +137,31 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
           isManipulated = true;
         }
       }
+    }
+
+    if (!rawResult || !hasValidScore) {
+      return {
+        id: `rd-unavailable-${Date.now().toString().slice(-6)}`,
+        mediaName: payload.mediaName,
+        mediaType: 'image',
+        mimeType: 'image/jpeg',
+        previewUrl: payload.url || '',
+        assessment: 'INSUFFICIENT EVIDENCE',
+        confidenceScore: 0,
+        riskLevel: 'Medium',
+        evidenceStrength: 'Low',
+        mediaAuthenticity: 'Needs Verification',
+        contextualCredibility: 'Unverified Context',
+        findings: [],
+        sources: [],
+        timeline: [],
+        providerInfo: {
+          name: this.name,
+          version: this.version,
+          isDemoMode: true,
+          disclaimer: 'Reality Defender API unavailable or request timed out.'
+        }
+      };
     }
 
     const confidence = Math.round((isManipulated ? syntheticProbability : (1 - syntheticProbability)) * 100);

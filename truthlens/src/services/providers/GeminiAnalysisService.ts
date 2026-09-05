@@ -116,37 +116,33 @@ export class GeminiAnalysisService {
         base64Data = parts[1];
       }
 
-      const prompt = `You are an expert AI forensic analyst evaluating an uploaded image named "${mediaName}".
-Your sole objective is to inspect the visual content meticulously and determine whether it is an authentic real-world photograph, a generative AI image (e.g., Midjourney, Stable Diffusion, DALL-E, Flux, Imagen), or an edited/manipulated image.
+      const prompt = `You are an image-forensics assistant.
+Analyze this image objectively.
+Do not assume that it is AI-generated.
 
-CRITICAL MULTI-DIMENSIONAL FORENSIC INSPECTION GUIDELINES:
-1. EXAMINE ACROSS ALL 8 COMPREHENSIVE FORENSIC DIMENSIONS (Do not rely solely on skin texture or eye reflections):
-   - Dimension A [Skin & Facial Pores]: Look for waxy smoothing, artificial skin blur, unrealistic pores vs natural subsurface scattering.
-   - Dimension B [Ocular & Catchlights]: Check pupil geometry, iris ring patterns, specular light reflections across both eyes.
-   - Dimension C [Error Level & Noise Frequency]: Inspect Error Level Analysis (ELA) compression uniformity and high-frequency Fourier Transform (FFT) noise distribution. Real photos display organic, variable camera sensor noise.
-   - Dimension D [Background Geometry & Pattern Repetition]: Check wallpaper, tiles, fences, and background objects for impossible repeating grids, warped straight lines, or unattached floating structures.
-   - Dimension E [Anatomical & Hair Geometry]: Inspect hair strand continuity, ear lobe symmetry, collarbone contours, teeth spacing, finger joint counts, and jewelry alignment.
-   - Dimension F [Shadow & Illumination Vectors]: Verify whether cast shadows on shoulders/background match the primary light source angle across the entire subject.
-   - Dimension G [Text & Symbology]: Check badges, shirt logos, background signs, or printed text for garbled AI letterforms or pseudo-characters.
-   - Dimension H [Edge Anti-Aliasing & Bokeh Splicing]: Inspect subject boundary edges against the background for artificial haloing, Gaussian edge blurring, or unnatural depth-of-field separation.
+Identify:
+1. Evidence supporting authentic photography (e.g. natural optical depth of field, consistent lighting vectors, realistic pores/textures, camera sensor noise)
+2. Evidence supporting AI generation (e.g. malformed anatomy/hands, unnatural teeth/eye specular mismatch, garbled text, repeating background grids)
+3. Evidence supporting manipulation (e.g. spliced borders, localized editing, clone stamp repetition)
+4. Uncertain observations
 
-2. FORENSIC CLASSIFICATION RULES:
-   - To flag an image as "SUGGEST_AI": There MUST be observable synthetic artifacts present across MULTIPLE forensic dimensions (e.g. background warping + anatomical irregularity + ELA frequency noise anomaly). Never rely on a single isolated feature.
-   - If the image shows natural camera optical features (organic sensor noise, realistic shadow angles, crisp physical edge transitions, coherent anatomy):
-     * Set verdictCategory to "SUGGEST_AUTHENTIC"
-     * Set visualAiProbability to an integer between 5 and 20
-     * List physical camera evidence in supportingAuthenticityEvidence
-   - If signals are conflicting or inconclusive:
-     * Set verdictCategory to "INCONCLUSIVE"
-     * Set visualAiProbability to 50
+CRITICAL RULES:
+- Do not treat missing metadata as evidence of AI generation.
+- Do not treat compression, low resolution, or resizing as evidence of AI generation.
+- Do not invent artifacts.
+- Do not invent watermarks.
+- Do not make a final binary decision.
+- If the evidence is weak or ambiguous, recommend NEEDS VERIFICATION.
 
 Respond ONLY as a raw, valid JSON object (no markdown formatting) matching this schema:
 {
-  "verdictCategory": "SUGGEST_AUTHENTIC" | "SUGGEST_AI" | "SUGGEST_EDITED" | "INCONCLUSIVE",
-  "visualAiProbability": number, // integer 0 to 98 (0 = high confidence real, 98 = high confidence AI render)
-  "summary": "Clear 2-sentence visual evaluation summary.",
+  "recommendedVerdict": "AUTHENTIC" | "AI_GENERATED" | "MANIPULATED" | "NEEDS_VERIFICATION" | "INSUFFICIENT_EVIDENCE",
+  "visualAiProbability": number, // integer 0 to 100 representing raw visual observation
+  "summary": "Objective 2-sentence visual analysis summary.",
   "supportingAuthenticityEvidence": ["list of observable physical/optical facts supporting real photography"],
   "suggestingAiEvidence": ["list of observable synthetic/generative artifacts found, or empty array if none"],
+  "suggestingManipulationEvidence": ["list of localized editing/splicing markers, or empty array if none"],
+  "uncertainObservations": ["list of ambiguous visual notes"],
   "findings": [
     {
       "title": "Short descriptive title",
@@ -210,9 +206,9 @@ Respond ONLY as a raw, valid JSON object (no markdown formatting) matching this 
 
       return {
         available: true,
-        verdictCategory: parsed.verdictCategory || 'INCONCLUSIVE',
+        verdictCategory: parsed.recommendedVerdict === 'AUTHENTIC' ? 'SUGGEST_AUTHENTIC' : parsed.recommendedVerdict === 'AI_GENERATED' ? 'SUGGEST_AI' : parsed.recommendedVerdict === 'MANIPULATED' ? 'SUGGEST_EDITED' : 'INCONCLUSIVE',
         visualAiScore: Math.min(98, Math.max(5, Number(parsed.visualAiProbability) || 50)),
-        summary: parsed.summary || 'Gemini evidence-based visual inspection completed.',
+        summary: parsed.summary || 'Gemini objective image forensic inspection completed.',
         supportingAuthenticityEvidence: Array.isArray(parsed.supportingAuthenticityEvidence) ? parsed.supportingAuthenticityEvidence : [],
         suggestingAiEvidence: Array.isArray(parsed.suggestingAiEvidence) ? parsed.suggestingAiEvidence : [],
         findings: Array.isArray(parsed.findings) ? parsed.findings : [],

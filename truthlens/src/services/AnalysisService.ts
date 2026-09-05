@@ -26,7 +26,7 @@ export class AnalysisService {
     if (process.env.REALITY_DEFENDER_API_KEY) {
       try {
         rdResult = await this.rdProvider.analyzeImage(payload);
-        if (rdResult && typeof rdResult.confidenceScore === 'number') {
+        if (rdResult && typeof rdResult.confidenceScore === 'number' && rdResult.confidenceScore > 0) {
           rdAvailable = true;
         }
       } catch (err) {
@@ -194,53 +194,84 @@ export class AnalysisService {
       supportingAuthenticityEvidence.push('No prominent synthetic generative artifacts detected.');
     }
 
-    // Step 7: Final Categorization Decision Matrix (Strict Separation Rules)
+    // Step 7: Multi-Signal Evidence Fusion Engine
+    // Collect independent positive authentic & synthetic signals
+    let authenticSignalCount = 0;
+    let aiSignalCount = 0;
+    let manipulatedSignalCount = 0;
+
+    // Signal 1: Specialized Deepfake AI Detector (Reality Defender)
+    if (rdAvailable && rdResult) {
+      if (rdIsSynthetic && (rdConfidence || 0) >= 65) {
+        aiSignalCount += 2; // Strong independent signal
+      } else if (!rdIsSynthetic && (rdConfidence || 0) >= 60) {
+        authenticSignalCount += 2; // Strong independent signal
+      }
+    }
+
+    // Signal 2: Gemini Objective Visual Evidence Analysis
+    if (geminiAvailable && geminiRes) {
+      if (geminiCategory === 'SUGGEST_AI' || geminiVisualAiScore >= 75) {
+        aiSignalCount += 2; // Strong independent signal
+      } else if (geminiCategory === 'SUGGEST_AUTHENTIC' || geminiVisualAiScore <= 30) {
+        authenticSignalCount += 2; // Strong independent signal
+      } else if (geminiCategory === 'SUGGEST_EDITED') {
+        manipulatedSignalCount += 2;
+      }
+    }
+
+    // Signal 3: Hardware EXIF & Camera Sensor Metadata
+    if (exifSignal.hasCameraHardware) {
+      authenticSignalCount += 2; // Very strong photographic signal
+    } else if (exifSignal.hasSoftwareAiTag) {
+      aiSignalCount += 2; // Explicit AI generation software tag in metadata
+    }
+
+    // Signal 4: Filename Pattern Analysis (Camera / WhatsApp transit)
+    if (forensicSignal.isCameraFilename) {
+      authenticSignalCount += 2;
+    } else if (exifSignal.isWhatsApp) {
+      authenticSignalCount += 2; // WhatsApp compression is expected platform transit behavior
+    } else if (forensicSignal.isAiFilenameKeyword) {
+      aiSignalCount += 1; // Filename clue (supporting only)
+    }
+
+    // Evaluate Final Decision taxonomy & Dynamic Calculated Confidence
     let assessment: AuthenticityAssessment = 'NEEDS VERIFICATION';
-    let confidenceScore = 65;
+    let confidenceScore = 58;
     let riskLevel: 'High' | 'Medium' | 'Low' = 'Medium';
     let evidenceStrength: 'High' | 'Moderate' | 'Low' = 'Moderate';
     let mediaAuthenticity: 'Likely Authentic' | 'Potentially Manipulated' | 'Needs Verification' = 'Needs Verification';
 
-    // 1. Direct AI Generation Rule
-    const hasExplicitAiEvidence = (
-      exifSignal.hasSoftwareAiTag ||
-      (rdIsSynthetic === true && (rdConfidence || 0) >= 55) ||
-      geminiCategory === 'SUGGEST_AI' ||
-      geminiVisualAiScore >= 60 ||
-      (forensicSignal.isAiFilenameKeyword && (suggestingAiEvidence.length >= 1 || geminiVisualAiScore >= 45 || rdIsSynthetic === true))
-    );
-
-    // 2. Direct Authentic Rule
-    const hasExplicitAuthenticEvidence = (
-      exifSignal.hasCameraHardware ||
-      (geminiCategory === 'SUGGEST_AUTHENTIC' && suggestingAiEvidence.length <= 1 && !forensicSignal.isAiFilenameKeyword) ||
-      (rdIsSynthetic === false && (rdConfidence || 0) >= 60 && suggestingAiEvidence.length === 0 && !forensicSignal.isAiFilenameKeyword) ||
-      (forensicSignal.isCameraFilename && suggestingAiEvidence.length === 0) ||
-      (exifSignal.isWhatsApp && suggestingAiEvidence.length === 0) ||
-      (suggestingAiEvidence.length === 0 && !forensicSignal.isAiFilenameKeyword && !exifSignal.hasSoftwareAiTag)
-    );
-
-    if (hasExplicitAiEvidence && !exifSignal.hasCameraHardware) {
-      // CLEAR AI GENERATED CONTENT
+    // REQUIRE MULTIPLE INDEPENDENT STRONG SIGNALS (Threshold >= 3) TO CLASSIFY AS LIKELY AI-GENERATED
+    if (aiSignalCount >= 3 && !exifSignal.hasCameraHardware && aiSignalCount > authenticSignalCount) {
       assessment = 'LIKELY AI-GENERATED';
-      confidenceScore = Math.max(86, Math.min(98, rdIsSynthetic ? (rdConfidence || 88) : geminiVisualAiScore > 50 ? geminiVisualAiScore : 88));
+      confidenceScore = Math.min(98, Math.max(78, 70 + (aiSignalCount * 6)));
       riskLevel = 'High';
       evidenceStrength = 'High';
       mediaAuthenticity = 'Potentially Manipulated';
-    } else if (hasExplicitAuthenticEvidence && !hasExplicitAiEvidence) {
-      // CLEAR AUTHENTIC CONTENT
+    } else if (manipulatedSignalCount >= 2 && manipulatedSignalCount > aiSignalCount) {
+      assessment = 'LIKELY MANIPULATED';
+      confidenceScore = Math.min(95, Math.max(75, 65 + (manipulatedSignalCount * 8)));
+      riskLevel = 'High';
+      evidenceStrength = 'High';
+      mediaAuthenticity = 'Potentially Manipulated';
+    } else if (authenticSignalCount >= 2 && authenticSignalCount > aiSignalCount) {
       assessment = 'LIKELY AUTHENTIC';
-      confidenceScore = exifSignal.hasCameraHardware ? 96 : rdIsSynthetic === false ? Math.max(85, Math.min(95, rdConfidence || 90)) : 90;
+      confidenceScore = Math.min(98, Math.max(82, 70 + (authenticSignalCount * 7)));
       riskLevel = 'Low';
       evidenceStrength = 'High';
       mediaAuthenticity = 'Likely Authentic';
     } else {
-      // CONFLICTING OR WEAK SIGNALS -> NEEDS VERIFICATION
+      // Weak, ambiguous, or single-signal anomaly -> Default to NEEDS VERIFICATION
       assessment = 'NEEDS VERIFICATION';
-      confidenceScore = 65;
+      confidenceScore = aiSignalCount > 0 && authenticSignalCount > 0 ? 52 : 58;
       riskLevel = 'Medium';
       evidenceStrength = 'Moderate';
       mediaAuthenticity = 'Needs Verification';
+      if (aiSignalCount > 0 && authenticSignalCount > 0) {
+        supportingAuthenticityEvidence.push('Conflicting evidence detected across forensic signals.');
+      }
     }
 
     // Step 7: Combine Findings
