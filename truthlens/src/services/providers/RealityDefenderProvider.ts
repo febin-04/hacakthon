@@ -63,7 +63,7 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
               const pollTimeout = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Reality Defender poll timeout (2000ms exceeded)')), 2000)
               );
-              const res = await Promise.race([pollPromise, pollTimeout]).catch(() => null);
+              const res: any = await Promise.race([pollPromise, pollTimeout]).catch(() => null);
               if (res) {
                 rawResult = res;
                 if (res.status !== 'ANALYZING' && res.status !== 'DOWNLOADING') {
