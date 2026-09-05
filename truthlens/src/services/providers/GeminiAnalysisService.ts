@@ -116,21 +116,28 @@ export class GeminiAnalysisService {
         base64Data = parts[1];
       }
 
-      const prompt = `You are analyzing an image named "${mediaName}" for possible AI generation or manipulation.
+      const prompt = `You are an expert AI forensic analyst evaluating an uploaded image named "${mediaName}".
+Your sole objective is to inspect the visual content meticulously and determine whether it is an authentic real-world photograph, a generative AI image (e.g., Midjourney, Stable Diffusion, DALL-E, Flux, Imagen), or an edited/manipulated image.
 
-CRITICAL GUIDELINES:
-- Do NOT assume the image is AI-generated.
-- First identify whether there are actual observable visual signs of AI generation or manipulation.
-- Consider: facial details, eyes, teeth, hands, text, lighting, shadows, reflections, textures, background, object boundaries, repeated patterns, unnatural geometry, image compression, editing artifacts.
-- Distinguish strictly between:
-  1. Evidence suggesting AI generation (e.g. malformed hands/teeth, specular catchlight vector mismatch, diffusion noise loops)
-  2. Evidence suggesting authentic photography (e.g. natural optical depth of field, consistent sensor noise, realistic skin pores, uniform light vector)
-  3. Evidence suggesting editing/manipulation (e.g. clone stamp repetition, localized splicing borders)
-  4. No significant evidence / Inconclusive
-- Do NOT treat missing camera EXIF metadata as proof of AI generation.
-- Do NOT treat low image resolution or JPEG compression as proof of AI generation.
-- Do NOT invent evidence or fake URLs.
-- If the evidence is weak or conflicting, classify verdictCategory as "INCONCLUSIVE".
+CRITICAL FORENSIC INSPECTION GUIDELINES:
+1. CAREFULLY EXAMINE ALL VISUAL EVIDENCE FOR SYNTHETIC / GENERATIVE AI ARTIFACTS:
+   - Skin & Face: Overly smooth/waxy skin, unnatural pore patterns, blurred ears, asymmetric features, unnatural teeth alignment, distorted irises, pupil specular reflection mismatches.
+   - Anatomy & Hands: Malformed/extra/fused fingers, unnatural wrist/hand joints, floating hair strands, impossible body poses.
+   - Text & Geometry: Nonsensical background text/gibberish lettering, repeating wall patterns, floating or unattached architectural elements, warped straight lines.
+   - Optics & Lighting: Lighting direction inconsistencies, missing realistic shadows, missing chromatic aberration, unnatural background bokeh blur, uniform diffusion noise loops.
+
+2. FORENSIC SEPARATION RULES:
+   - If clear synthetic generative artifacts are observed:
+     * Set verdictCategory to "SUGGEST_AI"
+     * Set visualAiProbability to an integer between 75 and 98
+     * Detail specific observable artifacts in suggestingAiEvidence
+   - If genuine optical camera traits are observed (consistent sensor noise, natural skin pores, realistic depth of field, physical light vectors):
+     * Set verdictCategory to "SUGGEST_AUTHENTIC"
+     * Set visualAiProbability to an integer between 5 and 25
+     * Detail physical optical evidence in supportingAuthenticityEvidence
+   - If missing camera metadata or low resolution makes visual proof inconclusive:
+     * Set verdictCategory to "INCONCLUSIVE"
+     * Set visualAiProbability to 50
 
 Respond ONLY as a raw, valid JSON object (no markdown formatting) matching this schema:
 {
@@ -152,7 +159,7 @@ Respond ONLY as a raw, valid JSON object (no markdown formatting) matching this 
 }`;
 
       // Call Gemini API with fallback models & 6s timeout
-      const modelCandidates = ['gemini-3.6-flash', 'gemini-3.5-flash'];
+      const modelCandidates = ['gemini-flash-latest', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-flash-lite-latest'];
       let response: any = null;
       let lastModelError: any = null;
 

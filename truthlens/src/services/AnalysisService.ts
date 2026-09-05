@@ -204,19 +204,20 @@ export class AnalysisService {
     // 1. Direct AI Generation Rule
     const hasExplicitAiEvidence = (
       exifSignal.hasSoftwareAiTag ||
-      (rdIsSynthetic === true && (rdConfidence || 0) >= 60) ||
+      (rdIsSynthetic === true && (rdConfidence || 0) >= 55) ||
       geminiCategory === 'SUGGEST_AI' ||
-      (forensicSignal.isAiFilenameKeyword && geminiVisualAiScore >= 60)
+      geminiVisualAiScore >= 60 ||
+      suggestingAiEvidence.length >= 1 ||
+      (forensicSignal.isAiFilenameKeyword && (geminiVisualAiScore >= 45 || rdIsSynthetic === true))
     );
 
     // 2. Direct Authentic Rule
     const hasExplicitAuthenticEvidence = (
       exifSignal.hasCameraHardware ||
-      (rdIsSynthetic === false && (rdConfidence || 0) >= 50 && suggestingAiEvidence.length === 0) ||
       (geminiCategory === 'SUGGEST_AUTHENTIC' && suggestingAiEvidence.length === 0) ||
-      (forensicSignal.isCameraFilename && suggestingAiEvidence.length === 0) ||
-      (exifSignal.isWhatsApp && suggestingAiEvidence.length === 0) ||
-      (suggestingAiEvidence.length === 0 && !forensicSignal.isAiFilenameKeyword && !exifSignal.hasSoftwareAiTag)
+      (rdIsSynthetic === false && (rdConfidence || 0) >= 60 && suggestingAiEvidence.length === 0) ||
+      (forensicSignal.isCameraFilename && suggestingAiEvidence.length === 0 && (geminiCategory === 'SUGGEST_AUTHENTIC' || rdIsSynthetic === false)) ||
+      (exifSignal.isWhatsApp && suggestingAiEvidence.length === 0 && (geminiCategory === 'SUGGEST_AUTHENTIC' || rdIsSynthetic === false))
     );
 
     if (hasExplicitAiEvidence && !exifSignal.hasCameraHardware) {
