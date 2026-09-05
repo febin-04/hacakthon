@@ -508,12 +508,29 @@ function ResultsContent() {
             </div>
           </div>
 
-          {/* Filename & EXIF Metadata Analysis Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          {/* Why Did TruthLens Reach This Conclusion Explanation Box */}
+          {data.whyWeThinkThis.whyExplanation && data.whyWeThinkThis.whyExplanation.length > 0 && (
+            <div className="p-5 rounded-xl bg-slate-950 border border-cyan-500/40 space-y-3">
+              <div className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-cyan-400" />
+                Why did TruthLens reach this conclusion?
+              </div>
+              <ul className="space-y-1.5 text-xs font-mono text-slate-200">
+                {data.whyWeThinkThis.whyExplanation.map((line, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Filename, EXIF & Watermark Analysis Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
             {/* Filename Analysis */}
             <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
               <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-semibold flex items-center justify-between">
-                <span>Filename Signal Analysis</span>
+                <span>Filename Analysis</span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
                   {data.whyWeThinkThis.filenameAnalysis.signalType.toUpperCase()}
                 </span>
@@ -545,6 +562,23 @@ function ResultsContent() {
               )}
               <p className="text-xs text-slate-400 leading-relaxed">
                 {data.whyWeThinkThis.metadataBreakdown.statusNote}
+              </p>
+            </div>
+
+            {/* Watermark Analysis */}
+            <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+              <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-semibold flex items-center justify-between">
+                <span>Watermark & OCR Analysis</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded border ${
+                  data.whyWeThinkThis.watermarkAnalysis?.hasWatermark 
+                    ? 'bg-rose-950 text-rose-300 border-rose-800' 
+                    : 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                }`}>
+                  {data.whyWeThinkThis.watermarkAnalysis?.hasWatermark ? 'AI WATERMARK DETECTED' : 'NO AI WATERMARK'}
+                </span>
+              </div>
+              <p className="text-xs font-mono text-slate-300">
+                {data.whyWeThinkThis.watermarkAnalysis?.note || 'No AI watermark detected. (Information provided as supporting signal only).'}
               </p>
             </div>
           </div>

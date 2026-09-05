@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck, Search, History, Info, Sun, Moon, Menu, X, Cpu, LayoutDashboard } from 'lucide-react';
+import { ShieldCheck, Search, History, Info, Sun, Moon, Menu, X, Cpu, LayoutDashboard, Activity } from 'lucide-react';
 import { useTheme } from './ThemeContext';
 
 export default function Navbar() {
@@ -14,6 +14,7 @@ export default function Navbar() {
   const navItems = [
     { label: 'Home', href: '/', icon: Cpu },
     { label: 'Analyze Media', href: '/analyze', icon: Search },
+    { label: 'Evaluation', href: '/evaluation', icon: Activity },
     { label: 'Results', href: '/results', icon: ShieldCheck },
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Analysis History', href: '/history', icon: History },

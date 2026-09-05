@@ -147,7 +147,8 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
         mimeType: 'image/jpeg',
         previewUrl: payload.url || '',
         assessment: 'INSUFFICIENT EVIDENCE',
-        confidenceScore: 0,
+        confidenceScore: null as any,
+        available: false,
         riskLevel: 'Medium',
         evidenceStrength: 'Low',
         mediaAuthenticity: 'Needs Verification',
@@ -161,7 +162,7 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
           isDemoMode: true,
           disclaimer: 'Reality Defender API unavailable or request timed out.'
         }
-      };
+      } as any;
     }
 
     const confidence = Math.round((isManipulated ? syntheticProbability : (1 - syntheticProbability)) * 100);

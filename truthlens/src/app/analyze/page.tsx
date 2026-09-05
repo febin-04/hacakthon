@@ -370,16 +370,25 @@ export default function AnalyzePage() {
               />
 
               <div
+                role="button"
+                tabIndex={0}
                 onDragEnter={handleDragOver}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragOver}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
                   dragActive
                     ? 'border-cyan-400 bg-cyan-950/40 glow-cyan'
                     : 'border-slate-800 hover:border-cyan-500/50 hover:bg-slate-950/50'
                 }`}
+                aria-label="Upload media file. Click or press Enter to browse files."
               >
                 <div className="w-14 h-14 rounded-2xl bg-cyan-950 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto mb-4 glow-cyan">
                   <Upload className="w-7 h-7" />

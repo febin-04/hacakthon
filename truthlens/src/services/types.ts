@@ -54,6 +54,12 @@ export interface WhyWeThinkThis {
     cameraModel?: string;
     statusNote: string;
   };
+  watermarkAnalysis: {
+    hasWatermark: boolean;
+    watermarkText?: string;
+    note: string;
+  };
+  whyExplanation: string[];
   limitations: string[];
 }
 

@@ -57,6 +57,7 @@ export default function Footer() {
             <ul className="space-y-2 text-xs">
               <li><Link href="/" className="hover:text-cyan-400 transition-colors">Home Landing</Link></li>
               <li><Link href="/analyze" className="hover:text-cyan-400 transition-colors">Verify Media Interface</Link></li>
+              <li><Link href="/evaluation" className="hover:text-cyan-400 font-semibold text-cyan-400 transition-colors">Evaluation Benchmark</Link></li>
               <li><Link href="/results" className="hover:text-cyan-400 transition-colors">Sample Verification Report</Link></li>
               <li><Link href="/history" className="hover:text-cyan-400 transition-colors">Analysis History Log</Link></li>
               <li><Link href="/about" className="hover:text-cyan-400 transition-colors">Forensics Methodology & Limits</Link></li>
