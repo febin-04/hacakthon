@@ -200,21 +200,26 @@ export class AnalysisService {
     let aiSignalCount = 0;
     let manipulatedSignalCount = 0;
 
+    // Baseline Authentic Protection: Clean files without AI software tags or AI keywords start with baseline authentic points
+    if (!exifSignal.hasSoftwareAiTag && !forensicSignal.isAiFilenameKeyword) {
+      authenticSignalCount += 2; // Baseline authentic protection against single-signal false positives
+    }
+
     // Signal 1: Specialized Deepfake AI Detector (Reality Defender)
     if (rdAvailable && rdResult) {
       if (rdIsSynthetic && (rdConfidence || 0) >= 65) {
-        aiSignalCount += 2; // Strong independent signal
+        aiSignalCount += 2; // Strong independent AI signal
       } else if (!rdIsSynthetic && (rdConfidence || 0) >= 60) {
-        authenticSignalCount += 2; // Strong independent signal
+        authenticSignalCount += 2; // Strong independent authentic signal
       }
     }
 
     // Signal 2: Gemini Objective Visual Evidence Analysis
     if (geminiAvailable && geminiRes) {
       if (geminiCategory === 'SUGGEST_AI' || geminiVisualAiScore >= 75) {
-        aiSignalCount += 2; // Strong independent signal
-      } else if (geminiCategory === 'SUGGEST_AUTHENTIC' || geminiVisualAiScore <= 30) {
-        authenticSignalCount += 2; // Strong independent signal
+        aiSignalCount += 2; // Strong independent AI signal
+      } else if (geminiCategory === 'SUGGEST_AUTHENTIC' || geminiVisualAiScore <= 35) {
+        authenticSignalCount += 2; // Strong independent authentic signal
       } else if (geminiCategory === 'SUGGEST_EDITED') {
         manipulatedSignalCount += 2;
       }
@@ -222,18 +227,18 @@ export class AnalysisService {
 
     // Signal 3: Hardware EXIF & Camera Sensor Metadata
     if (exifSignal.hasCameraHardware) {
-      authenticSignalCount += 2; // Very strong photographic signal
+      authenticSignalCount += 3; // Very strong camera hardware signal
     } else if (exifSignal.hasSoftwareAiTag) {
-      aiSignalCount += 2; // Explicit AI generation software tag in metadata
+      aiSignalCount += 3; // Explicit AI generation software tag in metadata
     }
 
-    // Signal 4: Filename Pattern Analysis (Camera / WhatsApp transit)
+    // Signal 4: Filename Pattern Analysis
     if (forensicSignal.isCameraFilename) {
       authenticSignalCount += 2;
     } else if (exifSignal.isWhatsApp) {
       authenticSignalCount += 2; // WhatsApp compression is expected platform transit behavior
     } else if (forensicSignal.isAiFilenameKeyword) {
-      aiSignalCount += 1; // Filename clue (supporting only)
+      aiSignalCount += 2; // Filename generative model keyword clue
     }
 
     // Evaluate Final Decision taxonomy & Dynamic Calculated Confidence
@@ -243,10 +248,10 @@ export class AnalysisService {
     let evidenceStrength: 'High' | 'Moderate' | 'Low' = 'Moderate';
     let mediaAuthenticity: 'Likely Authentic' | 'Potentially Manipulated' | 'Needs Verification' = 'Needs Verification';
 
-    // REQUIRE MULTIPLE INDEPENDENT STRONG SIGNALS (Threshold >= 3) TO CLASSIFY AS LIKELY AI-GENERATED
-    if (aiSignalCount >= 3 && !exifSignal.hasCameraHardware && aiSignalCount > authenticSignalCount) {
+    // REQUIRE MULTIPLE INDEPENDENT STRONG SIGNALS (Threshold aiSignalCount >= 4) TO CLASSIFY AS LIKELY AI-GENERATED
+    if (aiSignalCount >= 4 && !exifSignal.hasCameraHardware && aiSignalCount > (authenticSignalCount + 1)) {
       assessment = 'LIKELY AI-GENERATED';
-      confidenceScore = Math.min(98, Math.max(78, 70 + (aiSignalCount * 6)));
+      confidenceScore = Math.min(98, Math.max(78, 70 + (aiSignalCount * 5)));
       riskLevel = 'High';
       evidenceStrength = 'High';
       mediaAuthenticity = 'Potentially Manipulated';
@@ -258,12 +263,12 @@ export class AnalysisService {
       mediaAuthenticity = 'Potentially Manipulated';
     } else if (authenticSignalCount >= 2 && authenticSignalCount > aiSignalCount) {
       assessment = 'LIKELY AUTHENTIC';
-      confidenceScore = Math.min(98, Math.max(82, 70 + (authenticSignalCount * 7)));
+      confidenceScore = Math.min(98, Math.max(82, 72 + (authenticSignalCount * 4)));
       riskLevel = 'Low';
       evidenceStrength = 'High';
       mediaAuthenticity = 'Likely Authentic';
     } else {
-      // Weak, ambiguous, or single-signal anomaly -> Default to NEEDS VERIFICATION
+      // Weak, ambiguous, or single-signal anomaly -> Default safely to NEEDS VERIFICATION
       assessment = 'NEEDS VERIFICATION';
       confidenceScore = aiSignalCount > 0 && authenticSignalCount > 0 ? 52 : 58;
       riskLevel = 'Medium';
