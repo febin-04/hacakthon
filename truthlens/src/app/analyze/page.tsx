@@ -175,24 +175,40 @@ export default function AnalyzePage() {
     setIsAnalyzing(true);
     setCurrentStepIndex(0);
 
-    // Fire backend API call in parallel immediately without blocking UI step progression
+    // Prepare payload URL safely: do not send massive base64 video/audio buffers over HTTP JSON
+    let payloadUrl = selectedMedia.url || '';
+    if (selectedMedia.identifiedType === 'IMAGE') {
+      if (selectedMedia.dataUrl && selectedMedia.dataUrl.length < 3 * 1024 * 1024) {
+        payloadUrl = selectedMedia.dataUrl;
+      }
+    }
+
+    // Fire backend API call with 4-second fast timeout guard
+    const fetchController = new AbortController();
+    const timeoutId = setTimeout(() => fetchController.abort(), 4000);
+
     const apiPromise = fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: fetchController.signal,
       body: JSON.stringify({
         mediaName: selectedMedia.name,
         mediaType: selectedMedia.identifiedType.toLowerCase(),
         fileSize: selectedMedia.sizeFormatted,
-        url: selectedMedia.dataUrl || selectedMedia.url || '',
+        url: payloadUrl,
       })
     })
-      .then((res) => res.json())
+      .then((res) => {
+        clearTimeout(timeoutId);
+        return res.json();
+      })
       .catch((err) => {
-        console.error('API call error:', err);
+        clearTimeout(timeoutId);
+        console.warn('API call fast fallback:', err);
         return null;
       });
 
-    // Animate progress steps smoothly every 450ms
+    // Animate progress steps smoothly every 300ms
     let step = 0;
     const interval = setInterval(async () => {
       step++;
@@ -202,25 +218,31 @@ export default function AnalyzePage() {
         clearInterval(interval);
         setCurrentStepIndex(processingSteps.length - 1);
 
-        // Await parallel API response
+        // Await parallel API response (guaranteed fast response within 4s max)
         const data = await apiPromise;
         const apiResult = data && data.success ? data.result : null;
 
+        // Use Blob URL or previewUrl for sessionStorage to avoid quota exceeded errors
         const uploadedRecord = {
           mediaName: selectedMedia.name,
           mediaType: selectedMedia.identifiedType.toLowerCase(),
           mimeType: selectedMedia.mimeType,
           sizeFormatted: selectedMedia.sizeFormatted,
-          previewUrl: selectedMedia.dataUrl || selectedMedia.previewUrl,
+          previewUrl: selectedMedia.previewUrl || (selectedMedia.dataUrl && selectedMedia.dataUrl.length < 500000 ? selectedMedia.dataUrl : ''),
           timestamp: Date.now(),
           apiResult: apiResult
         };
-        sessionStorage.setItem('truthlens_user_uploaded_media', JSON.stringify(uploadedRecord));
+
+        try {
+          sessionStorage.setItem('truthlens_user_uploaded_media', JSON.stringify(uploadedRecord));
+        } catch (e) {
+          console.warn('sessionStorage save warning:', e);
+        }
 
         const resultId = selectedMedia.identifiedType === 'VIDEO' ? 'video-demo-02' : selectedMedia.identifiedType === 'AUDIO' ? 'audio-demo-03' : 'image-demo-01';
         router.push(`/results?id=${resultId}&t=${Date.now()}`);
       }
-    }, 450);
+    }, 300);
   };
 
   return (
