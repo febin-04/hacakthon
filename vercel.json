@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd truthlens && npm install && npm run build",
+  "outputDirectory": "truthlens/.next",
+  "installCommand": "cd truthlens && npm install"
+}
