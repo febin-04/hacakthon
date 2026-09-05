@@ -34,13 +34,15 @@ export function parseImageForensics(
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
 
   // Filename pattern detection
-  const cameraPatterns = ['img_', 'dsc_', 'pxl_', 'dcim', 'gopr', 'mvimg_', 'cimg_'];
+  const cameraPatterns = ['img_', 'dsc_', 'pxl_', 'dcim', 'gopr', 'gopro', 'mvimg_', 'cimg_', 'vid_', 'mov_', 'clip_'];
   const screenshotPatterns = ['screenshot', 'screen_shot', 'capture', 'screen_capture'];
   const whatsappPatterns = ['wa0', 'wa1', 'wa2', 'wa3', 'wa4', 'wa5', 'wa6', 'wa7', 'wa8', 'wa9', 'whatsapp'];
   const aiKeywords = [
     'midjourney', 'dall-e', 'dalle', 'stable_diffusion', 'stablediffusion', 'synth', 'synthetic', 
     'deepfake', 'fake', 'gen_', '_gen', 'ai_', '_ai', 'render', 'flux', 'bing', 
-    'copilot', 'firefly', 'civitai', 'comfyui', 'chatgpt'
+    'copilot', 'firefly', 'civitai', 'comfyui', 'chatgpt', 'sora', 'runway', 'pika',
+    'luma', 'kling', 'haiper', 'cogvideo', 'animatediff', 'veo', 'hunyuan', 'text2video',
+    'ai_video', 'generated'
   ];
 
   let isCameraPattern = false;

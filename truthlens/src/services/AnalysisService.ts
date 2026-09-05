@@ -180,17 +180,18 @@ export class AnalysisService {
     let evidenceStrength: 'High' | 'Moderate' | 'Low' = 'Moderate';
     let mediaAuthenticity: 'Likely Authentic' | 'Potentially Manipulated' | 'Needs Verification' = 'Needs Verification';
 
-    // Count strong AI indicators (Visual anomalies confirmed by Gemini, software AI tags, or RD synthetic flag)
+    // Count strong AI indicators (Visual anomalies confirmed by Gemini, AI keywords, software AI tags, or RD synthetic flag)
     const strongAiIndicators = [
       geminiRes?.verdictCategory === 'SUGGEST_AI',
       metadataAnalysis.hasAiSoftwareTag,
+      filenameSignal.isAiKeywordPattern,
       isRdSynthetic && (rdResult?.confidenceScore || 0) >= 70
     ].filter(Boolean).length;
 
     const gCategory = geminiRes?.verdictCategory || 'INCONCLUSIVE';
 
-    if (strongAiIndicators >= 2 || (strongAiIndicators >= 1 && suggestingAiEvidence.length >= 2 && !metadataAnalysis.hasCameraExif)) {
-      // MULTIPLE strong AI indicators confirm AI generation
+    if (strongAiIndicators >= 1 || gCategory === 'SUGGEST_AI' || (suggestingAiEvidence.length >= 1 && !metadataAnalysis.hasCameraExif && !filenameSignal.isCameraPattern)) {
+      // Strong AI indicators confirm AI generation
       assessment = 'LIKELY AI-GENERATED';
       confidenceScore = Math.max(85, Math.min(98, (geminiRes?.visualAiScore || 88)));
       riskLevel = 'High';
@@ -204,11 +205,10 @@ export class AnalysisService {
       mediaAuthenticity = 'Potentially Manipulated';
     } else if (
       metadataAnalysis.hasCameraExif ||
-      gCategory === 'SUGGEST_AUTHENTIC' ||
-      (!isRdSynthetic && suggestingAiEvidence.length === 0) ||
-      (supportingAuthenticityEvidence.length > suggestingAiEvidence.length && strongAiIndicators === 0)
+      (gCategory === 'SUGGEST_AUTHENTIC' && mediaType === 'image') ||
+      (!isRdSynthetic && suggestingAiEvidence.length === 0 && filenameSignal.isCameraPattern)
     ) {
-      // CLEAR AUTHENTICITY SIGNALS (Camera EXIF, natural optics, no AI artifacts)
+      // CLEAR AUTHENTICITY SIGNALS (Camera EXIF / camera hardware pattern, natural optics, no AI artifacts)
       assessment = 'LIKELY AUTHENTIC';
       confidenceScore = metadataAnalysis.hasCameraExif ? 95 : (geminiRes?.visualAiScore ? (100 - geminiRes.visualAiScore) : 88);
       confidenceScore = Math.max(82, Math.min(96, confidenceScore));
@@ -216,7 +216,7 @@ export class AnalysisService {
       evidenceStrength = 'High';
       mediaAuthenticity = 'Likely Authentic';
     } else {
-      // CONFLICTING OR INSUFFICIENT EVIDENCE
+      // CONFLICTING OR INSUFFICIENT EVIDENCE (Unknown videos without camera tags)
       assessment = 'NEEDS VERIFICATION';
       confidenceScore = 60;
       riskLevel = 'Medium';

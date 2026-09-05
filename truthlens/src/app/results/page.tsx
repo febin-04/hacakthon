@@ -421,9 +421,6 @@ function ResultsContent() {
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono">
                   {data.assessment}
                 </h2>
-                <p className="text-xs text-slate-300 mt-1">
-                  Evaluated via Reality Defender API + Gemini Vision Engine
-                </p>
               </div>
             </div>
 
