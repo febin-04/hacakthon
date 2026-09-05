@@ -59,8 +59,8 @@ export class GeminiAnalysisService {
         const lowerName = mediaName.toLowerCase();
         const videoAiKeywords = [
           'sora', 'runway', 'pika', 'luma', 'kling', 'haiper', 'cogvideo', 'animatediff',
-          'veo', 'hunyuan', 'text2video', 'ai_video', 'synthetic', 'generated', 'deepfake',
-          'fake', 'gen_', '_gen', 'render', 'copilot', 'video_ai', 'ai'
+          'veo', 'hunyuan', 'text2video', 'ai_video', 'synthetic', 'deepfake',
+          'fake_video', 'gen_video', 'copilot_video', 'video_ai'
         ];
         const isAiMedia = videoAiKeywords.some((kw) => lowerName.includes(kw));
 
@@ -152,7 +152,7 @@ Respond ONLY as a raw, valid JSON object (no markdown formatting) matching this 
 }`;
 
       // Call Gemini API with fallback models & 6s timeout
-      const modelCandidates = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+      const modelCandidates = ['gemini-3.6-flash', 'gemini-3.5-flash'];
       let response: any = null;
       let lastModelError: any = null;
 

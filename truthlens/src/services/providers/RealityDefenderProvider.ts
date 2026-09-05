@@ -51,18 +51,26 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
         }
 
         if (fs.existsSync(filePathToAnalyze)) {
-          const uploadRes = await this.client.upload({ filePath: filePathToAnalyze });
+          const uploadPromise = this.client.upload({ filePath: filePathToAnalyze });
+          const uploadTimeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Reality Defender upload timeout (3000ms exceeded)')), 3000)
+          );
+          const uploadRes: any = await Promise.race([uploadPromise, uploadTimeout]);
           if (uploadRes?.requestId) {
             // Fast poll for evaluation results
             for (let i = 0; i < 3; i++) {
-              const res = await this.client.getResult(uploadRes.requestId);
+              const pollPromise = this.client.getResult(uploadRes.requestId);
+              const pollTimeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Reality Defender poll timeout (2000ms exceeded)')), 2000)
+              );
+              const res = await Promise.race([pollPromise, pollTimeout]).catch(() => null);
               if (res) {
                 rawResult = res;
                 if (res.status !== 'ANALYZING' && res.status !== 'DOWNLOADING') {
                   break;
                 }
               }
-              await new Promise((resolve) => setTimeout(resolve, 600));
+              await new Promise((resolve) => setTimeout(resolve, 400));
             }
           }
         }
@@ -79,6 +87,7 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
 
     // Extract score and status from Reality Defender response
     const rdStatus = (rawResult?.status || '').toUpperCase();
+    const rdVerdict = (rawResult?.verdict || '').toUpperCase();
     let score = rawResult?.score;
     if (score === null || score === undefined) {
       if (rawResult?.models && Array.isArray(rawResult.models)) {
@@ -90,18 +99,43 @@ export class RealityDefenderProvider implements ForensicAnalysisProvider {
     }
 
     let isManipulated = analysis.hasAiSoftwareTag;
-    let syntheticProbability = 0.5;
+    let syntheticProbability = 0.15; // default low synthetic probability for real media
 
     if (typeof score === 'number') {
-      // Reality Defender API returns status "AUTHENTIC" (score = realness) or "MANIPULATED" (score = fakeness)
-      if (rdStatus.includes('AUTHENTIC') || rdStatus.includes('REAL')) {
-        syntheticProbability = Math.max(0.02, Math.min(0.98, 1 - score));
-      } else if (rdStatus.includes('MANIPULATED') || rdStatus.includes('SYNTHETIC') || rdStatus.includes('FAKE')) {
-        syntheticProbability = Math.max(0.02, Math.min(0.98, score));
+      const normScore = score <= 1.0 ? score : score / 100;
+      
+      const isExplicitlyFake = (
+        rdStatus.includes('MANIPULATED') || 
+        rdStatus.includes('SYNTHETIC') || 
+        rdStatus.includes('FAKE') ||
+        rdVerdict.includes('MANIPULATED') ||
+        rdVerdict.includes('SYNTHETIC') ||
+        rdVerdict.includes('FAKE')
+      );
+
+      const isExplicitlyReal = (
+        rdStatus.includes('AUTHENTIC') || 
+        rdStatus.includes('REAL') ||
+        rdVerdict.includes('AUTHENTIC') ||
+        rdVerdict.includes('REAL')
+      );
+
+      if (isExplicitlyFake) {
+        syntheticProbability = Math.max(0.70, Math.min(0.98, normScore > 0.5 ? normScore : 1 - normScore));
+        isManipulated = true;
+      } else if (isExplicitlyReal) {
+        syntheticProbability = Math.max(0.02, Math.min(0.30, 1 - normScore));
+        isManipulated = false;
       } else {
-        syntheticProbability = score > 0.6 ? score : (1 - score);
+        // Standard API output where normScore represents AUTHENTICITY probability (0.0 to 1.0)
+        if (normScore >= 0.50) {
+          syntheticProbability = Math.max(0.02, Math.min(0.40, 1 - normScore));
+          isManipulated = false;
+        } else {
+          syntheticProbability = Math.max(0.60, Math.min(0.98, 1 - normScore));
+          isManipulated = true;
+        }
       }
-      isManipulated = syntheticProbability >= 0.50;
     }
 
     const confidence = Math.round((isManipulated ? syntheticProbability : (1 - syntheticProbability)) * 100);
