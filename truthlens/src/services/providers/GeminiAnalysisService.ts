@@ -119,23 +119,24 @@ export class GeminiAnalysisService {
       const prompt = `You are an expert AI forensic analyst evaluating an uploaded image named "${mediaName}".
 Your sole objective is to inspect the visual content meticulously and determine whether it is an authentic real-world photograph, a generative AI image (e.g., Midjourney, Stable Diffusion, DALL-E, Flux, Imagen), or an edited/manipulated image.
 
-CRITICAL FORENSIC INSPECTION GUIDELINES:
-1. CAREFULLY EXAMINE ALL VISUAL EVIDENCE FOR SYNTHETIC / GENERATIVE AI ARTIFACTS:
-   - Skin & Face: Overly smooth/waxy skin, unnatural pore patterns, blurred ears, asymmetric features, unnatural teeth alignment, distorted irises, pupil specular reflection mismatches.
-   - Anatomy & Hands: Malformed/extra/fused fingers, unnatural wrist/hand joints, floating hair strands, impossible body poses.
-   - Text & Geometry: Nonsensical background text/gibberish lettering, repeating wall patterns, floating or unattached architectural elements, warped straight lines.
-   - Optics & Lighting: Lighting direction inconsistencies, missing realistic shadows, missing chromatic aberration, unnatural background bokeh blur, uniform diffusion noise loops.
+CRITICAL MULTI-DIMENSIONAL FORENSIC INSPECTION GUIDELINES:
+1. EXAMINE ACROSS ALL 8 COMPREHENSIVE FORENSIC DIMENSIONS (Do not rely solely on skin texture or eye reflections):
+   - Dimension A [Skin & Facial Pores]: Look for waxy smoothing, artificial skin blur, unrealistic pores vs natural subsurface scattering.
+   - Dimension B [Ocular & Catchlights]: Check pupil geometry, iris ring patterns, specular light reflections across both eyes.
+   - Dimension C [Error Level & Noise Frequency]: Inspect Error Level Analysis (ELA) compression uniformity and high-frequency Fourier Transform (FFT) noise distribution. Real photos display organic, variable camera sensor noise.
+   - Dimension D [Background Geometry & Pattern Repetition]: Check wallpaper, tiles, fences, and background objects for impossible repeating grids, warped straight lines, or unattached floating structures.
+   - Dimension E [Anatomical & Hair Geometry]: Inspect hair strand continuity, ear lobe symmetry, collarbone contours, teeth spacing, finger joint counts, and jewelry alignment.
+   - Dimension F [Shadow & Illumination Vectors]: Verify whether cast shadows on shoulders/background match the primary light source angle across the entire subject.
+   - Dimension G [Text & Symbology]: Check badges, shirt logos, background signs, or printed text for garbled AI letterforms or pseudo-characters.
+   - Dimension H [Edge Anti-Aliasing & Bokeh Splicing]: Inspect subject boundary edges against the background for artificial haloing, Gaussian edge blurring, or unnatural depth-of-field separation.
 
-2. FORENSIC SEPARATION RULES:
-   - If clear synthetic generative artifacts are observed:
-     * Set verdictCategory to "SUGGEST_AI"
-     * Set visualAiProbability to an integer between 75 and 98
-     * Detail specific observable artifacts in suggestingAiEvidence
-   - If genuine optical camera traits are observed (consistent sensor noise, natural skin pores, realistic depth of field, physical light vectors):
+2. FORENSIC CLASSIFICATION RULES:
+   - To flag an image as "SUGGEST_AI": There MUST be observable synthetic artifacts present across MULTIPLE forensic dimensions (e.g. background warping + anatomical irregularity + ELA frequency noise anomaly). Never rely on a single isolated feature.
+   - If the image shows natural camera optical features (organic sensor noise, realistic shadow angles, crisp physical edge transitions, coherent anatomy):
      * Set verdictCategory to "SUGGEST_AUTHENTIC"
-     * Set visualAiProbability to an integer between 5 and 25
-     * Detail physical optical evidence in supportingAuthenticityEvidence
-   - If missing camera metadata or low resolution makes visual proof inconclusive:
+     * Set visualAiProbability to an integer between 5 and 20
+     * List physical camera evidence in supportingAuthenticityEvidence
+   - If signals are conflicting or inconclusive:
      * Set verdictCategory to "INCONCLUSIVE"
      * Set visualAiProbability to 50
 
